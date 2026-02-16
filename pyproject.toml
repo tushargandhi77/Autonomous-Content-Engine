@@ -1,0 +1,14 @@
+[project]
+name = "autonomous-content-engine"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain>=1.2.10",
+    "langchain-google-genai>=4.2.0",
+    "langgraph>=1.0.8",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.1",
+    "streamlit>=1.54.0",
+]
