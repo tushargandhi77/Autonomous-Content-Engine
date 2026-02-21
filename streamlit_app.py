@@ -1,14 +1,7 @@
 """
 Autonomous Content Engine — Streamlit App
-Fixes:
-  1. Persistent login via session token stored in MongoDB + browser localStorage (JS injection)
-  2. Sidebar always accessible via custom toggle button
-  3. Light / Dark mode toggle with enhanced UI
-
-Requires:
-  pip install streamlit pymongo bcrypt python-dotenv
-  ACE_backend.py in the same folder
-  .streamlit/secrets.toml  →  MONGO_URI = "mongodb+srv://..."
+Enhanced UI version with improved light mode, auth page, and visual polish.
+All logic preserved, only UI/CSS enhanced.
 """
 
 import sys, os, secrets
@@ -36,429 +29,748 @@ if "sidebar_open" not in st.session_state:
 
 dark = st.session_state.dark_mode
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
+# ── Color palette ─────────────────────────────────────────────────────────────
 if dark:
-    bg_main      = "#0a0a0f"
-    bg_card      = "#13131e"
-    bg_sidebar   = "#0e0e16"
-    text_primary = "#f0ece4"
-    text_sec     = "#9a96a0"
-    text_muted   = "#5a5660"
-    border_col   = "rgba(255,255,255,0.07)"
-    border_input = "rgba(255,255,255,0.1)"
-    input_bg     = "#13131e"
-    input_text   = "#e8e4dc"
-    accent       = "#7c5cfc"
-    accent_light = "#b89cfa"
-    accent_soft  = "rgba(124,92,252,0.12)"
-    hero_sub     = "#7a7870"
-    hist_label   = "#3a3640"
-    radial1      = "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(120,80,255,0.12) 0%, transparent 70%)"
-    radial2      = "radial-gradient(ellipse 40% 30% at 90% 80%, rgba(255,120,60,0.06) 0%, transparent 60%)"
-    md_p         = "#b8b4ac"
-    md_h2        = "#d4d0cc"
-    md_code_bg   = "rgba(124,92,252,0.15)"
-    md_code_c    = "#c8b4f8"
-    md_pre_bg    = "#0a0a12"
-    alert_bg     = "rgba(124,92,252,0.08)"
-    alert_border = "rgba(124,92,252,0.2)"
-    alert_text   = "#c8b4f8"
-    mode_icon    = "☀️"
-    mode_label   = "Light Mode"
-    chip_bg      = "rgba(124,92,252,0.08)"
-    chip_border  = "rgba(124,92,252,0.18)"
-    pipeline_run = "#7c5cfc"
-    pipeline_done= "rgba(80,220,130,0.4)"
+    bg_main        = "#080810"
+    bg_card        = "#0f0f1a"
+    bg_card2       = "#131325"
+    bg_sidebar     = "#0b0b16"
+    text_primary   = "#ede8ff"
+    text_sec       = "#8b86a8"
+    text_muted     = "#4a465e"
+    border_col     = "rgba(120,100,255,0.1)"
+    border_input   = "rgba(120,100,255,0.18)"
+    input_bg       = "#0f0f1a"
+    input_text     = "#ede8ff"
+    accent         = "#7c5cfc"
+    accent2        = "#a855f7"
+    accent_light   = "#c4a8ff"
+    accent_soft    = "rgba(124,92,252,0.12)"
+    hero_sub       = "#5c586e"
+    hist_label     = "#2e2a40"
+    md_p           = "#9e9ab8"
+    md_h2          = "#c8c4e0"
+    md_code_bg     = "rgba(124,92,252,0.15)"
+    md_code_c      = "#c8a8f8"
+    md_pre_bg      = "#07070f"
+    alert_bg       = "rgba(124,92,252,0.08)"
+    alert_border   = "rgba(124,92,252,0.2)"
+    alert_text     = "#c8b4f8"
+    mode_icon      = "☀️"
+    mode_label     = "Light"
+    chip_bg        = "rgba(124,92,252,0.08)"
+    chip_border    = "rgba(124,92,252,0.2)"
+    pipeline_run   = "#7c5cfc"
+    pipeline_done  = "rgba(80,220,130,0.4)"
+    auth_bg_from   = "#0a0818"
+    auth_bg_to     = "#130f28"
+    glow1          = "rgba(124,92,252,0.35)"
+    glow2          = "rgba(168,85,247,0.2)"
+    noise_opacity  = "0.03"
+    card_shadow    = "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,92,252,0.1)"
+    divider_col    = "rgba(124,92,252,0.12)"
+    tab_active_bg  = "rgba(124,92,252,0.15)"
+    input_shadow   = "0 0 0 3px rgba(124,92,252,0.2)"
+    btn_shadow     = "0 8px 32px rgba(124,92,252,0.4)"
+    eyebrow_color  = "#7c5cfc"
+    tag_bg         = "rgba(124,92,252,0.1)"
 else:
-    bg_main      = "#f4f2ee"
-    bg_card      = "#ffffff"
-    bg_sidebar   = "#eeecea"
-    text_primary = "#1a1520"
-    text_sec     = "#5a5560"
-    text_muted   = "#9a96a8"
-    border_col   = "rgba(0,0,0,0.08)"
-    border_input = "rgba(0,0,0,0.14)"
-    input_bg     = "#ffffff"
-    input_text   = "#1a1520"
-    accent       = "#6240e8"
-    accent_light = "#8a6cf0"
-    accent_soft  = "rgba(98,64,232,0.08)"
-    hero_sub     = "#7a7680"
-    hist_label   = "#b0aab8"
-    radial1      = "radial-gradient(ellipse 80% 40% at 50% -10%, rgba(120,80,255,0.06) 0%, transparent 70%)"
-    radial2      = "radial-gradient(ellipse 40% 30% at 90% 80%, rgba(255,120,60,0.04) 0%, transparent 60%)"
-    md_p         = "#4a4660"
-    md_h2        = "#2a2438"
-    md_code_bg   = "rgba(98,64,232,0.08)"
-    md_code_c    = "#5a3cc8"
-    md_pre_bg    = "#f0eef8"
-    alert_bg     = "rgba(98,64,232,0.06)"
-    alert_border = "rgba(98,64,232,0.18)"
-    alert_text   = "#5a3cc8"
-    mode_icon    = "🌙"
-    mode_label   = "Dark Mode"
-    chip_bg      = "rgba(98,64,232,0.06)"
-    chip_border  = "rgba(98,64,232,0.16)"
-    pipeline_run = "#6240e8"
-    pipeline_done= "rgba(40,180,90,0.4)"
+    bg_main        = "#f7f5ff"
+    bg_card        = "#ffffff"
+    bg_card2       = "#f0eeff"
+    bg_sidebar     = "#f2f0ff"
+    text_primary   = "#1a1535"
+    text_sec       = "#5a5478"
+    text_muted     = "#9490b0"
+    border_col     = "rgba(98,64,232,0.1)"
+    border_input   = "rgba(98,64,232,0.2)"
+    input_bg       = "#ffffff"
+    input_text     = "#1a1535"
+    accent         = "#6240e8"
+    accent2        = "#9333ea"
+    accent_light   = "#7c5cf0"
+    accent_soft    = "rgba(98,64,232,0.08)"
+    hero_sub       = "#7a7694"
+    hist_label     = "#c4c0d8"
+    md_p           = "#4a4668"
+    md_h2          = "#2a2448"
+    md_code_bg     = "rgba(98,64,232,0.07)"
+    md_code_c      = "#5a3cc8"
+    md_pre_bg      = "#f5f3ff"
+    alert_bg       = "rgba(98,64,232,0.05)"
+    alert_border   = "rgba(98,64,232,0.15)"
+    alert_text     = "#5a3cc8"
+    mode_icon      = "🌙"
+    mode_label     = "Dark"
+    chip_bg        = "rgba(98,64,232,0.06)"
+    chip_border    = "rgba(98,64,232,0.14)"
+    pipeline_run   = "#6240e8"
+    pipeline_done  = "rgba(40,180,90,0.35)"
+    auth_bg_from   = "#f0eeff"
+    auth_bg_to     = "#e8e4ff"
+    glow1          = "rgba(98,64,232,0.12)"
+    glow2          = "rgba(147,51,234,0.08)"
+    noise_opacity  = "0.02"
+    card_shadow    = "0 24px 64px rgba(98,64,232,0.12), 0 0 0 1px rgba(98,64,232,0.08)"
+    divider_col    = "rgba(98,64,232,0.1)"
+    tab_active_bg  = "rgba(98,64,232,0.08)"
+    input_shadow   = "0 0 0 3px rgba(98,64,232,0.12)"
+    btn_shadow     = "0 8px 28px rgba(98,64,232,0.35)"
+    eyebrow_color  = "#6240e8"
+    tag_bg         = "rgba(98,64,232,0.07)"
 
+# ── Comprehensive CSS ─────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=DM+Mono:wght@300;400;500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-*, *::before, *::after {{ box-sizing: border-box; }}
+*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
 html, body, [data-testid="stAppViewContainer"] {{
     background: {bg_main};
     color: {text_primary};
-    font-family: 'Cabinet Grotesk', sans-serif;
-    transition: background 0.3s ease, color 0.3s ease;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: background 0.4s ease, color 0.4s ease;
 }}
+
 [data-testid="stAppViewContainer"] {{
     background: {bg_main};
-    background-image: {radial1}, {radial2};
+    background-image:
+        radial-gradient(ellipse 90% 50% at 20% -5%, {glow1} 0%, transparent 65%),
+        radial-gradient(ellipse 60% 40% at 85% 90%, {glow2} 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 60% 50%, rgba(124,92,252,0.03) 0%, transparent 70%);
 }}
+
+/* Sidebar */
 [data-testid="stSidebar"] {{
     background: {bg_sidebar} !important;
     border-right: 1px solid {border_col} !important;
-    transition: background 0.3s ease;
+    transition: background 0.4s ease;
 }}
-[data-testid="stSidebar"] > div {{ padding: 1.5rem 1rem; }}
-#MainMenu, footer, header {{ display: none !important; }}
-.block-container {{ padding: 2rem 2.5rem 4rem; max-width: 1100px; }}
-h1, h2, h3 {{ font-family: 'Instrument Serif', serif; letter-spacing: -0.02em; }}
+[data-testid="stSidebar"] > div {{ padding: 1.4rem 1rem 2rem; }}
 
-/* ── Auth card ── */
-.auth-wrap {{
-    max-width: 460px;
-    margin: 6vh auto 0;
+/* Hide Streamlit chrome */
+#MainMenu, footer, header {{ display: none !important; }}
+.block-container {{
+    padding: 2rem 2.5rem 5rem;
+    max-width: 1120px;
+}}
+
+/* ── Typography ── */
+h1, h2, h3 {{
+    font-family: 'Fraunces', serif;
+    letter-spacing: -0.02em;
+}}
+
+/* ═══════════════════════════════════════════
+   AUTH PAGE — Complete redesign
+═══════════════════════════════════════════ */
+
+.auth-page-wrapper {{
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+}}
+
+/* Auth card */
+.auth-card {{
+    width: 100%;
+    max-width: 480px;
+    margin: 3vh auto 0;
     background: {bg_card};
     border: 1px solid {border_col};
-    border-radius: 20px;
-    padding: 2.8rem 2.8rem 2.2rem;
-    box-shadow: 0 24px 80px rgba(0,0,0,{0.25 if dark else 0.08});
-    transition: background 0.3s ease;
+    border-radius: 24px;
+    padding: 3rem 3rem 2.5rem;
+    box-shadow: {card_shadow};
+    position: relative;
+    overflow: hidden;
+    transition: background 0.4s;
 }}
-.auth-logo {{
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: {accent};
-    margin-bottom: 1rem;
-}}
-.auth-title {{
-    font-family: 'Instrument Serif', serif;
-    font-size: 2.4rem;
-    color: {text_primary};
-    margin: 0 0 0.3rem;
-    line-height: 1.1;
-}}
-.auth-title em {{ font-style: italic; color: {accent_light}; }}
-.auth-sub {{ font-size: 0.88rem; color: {text_muted}; margin-bottom: 2rem; }}
 
-/* ── Hero ── */
-.hero {{
-    padding: 3rem 0 2rem;
-    border-bottom: 1px solid {border_col};
-    margin-bottom: 2.5rem;
+.auth-card::before {{
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, {accent} 0%, {accent2} 50%, {accent_light} 100%);
+    border-radius: 24px 24px 0 0;
 }}
-.hero-eyebrow {{
+
+.auth-card::after {{
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, {glow1} 0%, transparent 70%);
+    pointer-events: none;
+}}
+
+.auth-badge {{
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: {tag_bg};
+    border: 1px solid {border_col};
+    border-radius: 100px;
+    padding: 0.25rem 0.75rem;
     font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: {accent};
-    margin-bottom: 0.75rem;
+    color: {accent_light};
+    margin-bottom: 1.2rem;
 }}
-.hero-title {{
-    font-family: 'Instrument Serif', serif;
-    font-size: clamp(2.4rem,5vw,3.8rem);
+
+.auth-badge .dot {{
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: {accent};
+    box-shadow: 0 0 6px {accent};
+    animation: pulse-dot 2s ease-in-out infinite;
+}}
+
+@keyframes pulse-dot {{
+    0%, 100% {{ opacity: 1; transform: scale(1); }}
+    50% {{ opacity: 0.5; transform: scale(0.7); }}
+}}
+
+.auth-headline {{
+    font-family: 'Fraunces', serif;
+    font-size: 2.6rem;
     font-weight: 400;
-    line-height: 1.1;
+    line-height: 1.08;
     color: {text_primary};
-    margin: 0 0 0.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.03em;
 }}
-.hero-title em {{ font-style: italic; color: {accent_light}; }}
-.hero-sub {{ font-size: 0.95rem; color: {hero_sub}; }}
 
-/* ── Inputs ── */
-.stTextInput input, .stTextArea textarea {{
-    background: {input_bg} !important;
-    border: 1px solid {border_input} !important;
-    border-radius: 10px !important;
-    color: {input_text} !important;
-    font-family: 'Cabinet Grotesk', sans-serif !important;
-    font-size: 0.95rem !important;
-    padding: 0.75rem 1rem !important;
-    transition: border-color 0.2s !important;
+.auth-headline em {{
+    font-style: italic;
+    background: linear-gradient(135deg, {accent} 0%, {accent2} 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }}
+
+.auth-sub {{
+    font-size: 0.88rem;
+    color: {text_muted};
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    font-weight: 400;
+}}
+
+.auth-divider {{
+    height: 1px;
+    background: linear-gradient(90deg, transparent, {divider_col}, transparent);
+    margin: 1.5rem 0;
+}}
+
+/* Feature tags under auth */
+.auth-features {{
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+}}
+.auth-feature-tag {{
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 100px;
+    background: {tag_bg};
+    color: {text_muted};
+    border: 1px solid {border_col};
+    letter-spacing: 0.05em;
+}}
+
+/* ── Tabs (auth) ── */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {{
+    background: {"rgba(255,255,255,0.03)" if dark else "rgba(98,64,232,0.04)"} !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    gap: 2px !important;
+    border: 1px solid {border_col} !important;
+    margin-bottom: 1.2rem !important;
+}}
+
+[data-testid="stTabs"] [data-baseweb="tab"] {{
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    color: {text_muted} !important;
+    letter-spacing: 0.02em !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1.2rem !important;
+    transition: all 0.2s !important;
+}}
+
+[data-testid="stTabs"] [aria-selected="true"] {{
+    color: {text_primary} !important;
+    background: {tab_active_bg} !important;
+    font-weight: 600 !important;
+}}
+
+/* ── Inputs (enhanced) ── */
+.stTextInput input, .stTextArea textarea, .stNumberInput input {{
+    background: {"rgba(255,255,255,0.03)" if dark else "#faf9ff"} !important;
+    border: 1.5px solid {border_input} !important;
+    border-radius: 12px !important;
+    color: {input_text} !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.9rem !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.25s !important;
+    caret-color: {accent} !important;
+}}
+
 .stTextInput input:focus, .stTextArea textarea:focus {{
     border-color: {accent} !important;
-    box-shadow: 0 0 0 3px {accent_soft} !important;
+    box-shadow: {input_shadow} !important;
+    background: {"rgba(124,92,252,0.04)" if dark else "#fff"} !important;
     outline: none !important;
 }}
-.stTextInput label, .stTextArea label {{
+
+.stTextInput label, .stTextArea label, .stNumberInput label {{
     color: {text_sec} !important;
-    font-size: 0.75rem !important;
+    font-size: 0.72rem !important;
     font-family: 'DM Mono', monospace !important;
-    letter-spacing: 0.08em !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
+    font-weight: 500 !important;
+    margin-bottom: 0.3rem !important;
 }}
 
-/* ── Buttons ── */
+/* ── Buttons (primary) ── */
 .stButton > button {{
-    background: linear-gradient(135deg, {accent} 0%, {accent_light} 100%) !important;
+    background: linear-gradient(135deg, {accent} 0%, {accent2} 100%) !important;
     border: none !important;
-    border-radius: 8px !important;
-    color: #fff !important;
-    font-family: 'Cabinet Grotesk', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 0.95rem !important;
-    padding: 0.65rem 1.8rem !important;
+    border-radius: 12px !important;
+    color: #ffffff !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    padding: 0.7rem 1.8rem !important;
     cursor: pointer !important;
-    transition: all 0.2s !important;
-    box-shadow: 0 4px 20px {accent_soft} !important;
+    transition: all 0.25s ease !important;
+    box-shadow: {btn_shadow} !important;
+    letter-spacing: 0.01em !important;
+    position: relative !important;
+    overflow: hidden !important;
 }}
+
+.stButton > button::after {{
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%) !important;
+    pointer-events: none !important;
+}}
+
 .stButton > button:hover {{
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 28px rgba(124,92,252,0.45) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 40px rgba(124,92,252,0.5) !important;
+    filter: brightness(1.05) !important;
 }}
-/* Ghost buttons (logout, back, delete) */
+
+.stButton > button:active {{
+    transform: translateY(0) !important;
+    box-shadow: 0 4px 16px rgba(124,92,252,0.3) !important;
+}}
+
+/* Ghost / secondary buttons */
 .stButton > button[kind="secondary"] {{
-    background: transparent !important;
-    border: 1px solid {border_col} !important;
+    background: {"rgba(255,255,255,0.04)" if dark else "rgba(255,255,255,0.9)"} !important;
+    border: 1.5px solid {border_col} !important;
     color: {text_sec} !important;
     box-shadow: none !important;
+    font-weight: 500 !important;
 }}
 
+.stButton > button[kind="secondary"]:hover {{
+    background: {chip_bg} !important;
+    border-color: {accent} !important;
+    color: {accent_light} !important;
+}}
+
+/* Download button */
 .stDownloadButton > button {{
-    background: transparent !important;
-    border: 1px solid rgba(124,92,252,0.5) !important;
-    border-radius: 8px !important;
+    background: {"rgba(255,255,255,0.04)" if dark else "rgba(98,64,232,0.04)"} !important;
+    border: 1.5px solid {chip_border} !important;
+    border-radius: 10px !important;
     color: {accent_light} !important;
     font-family: 'DM Mono', monospace !important;
-    font-size: 0.78rem !important;
+    font-size: 0.75rem !important;
     padding: 0.5rem 1.2rem !important;
     letter-spacing: 0.04em !important;
     transition: all 0.2s !important;
+    box-shadow: none !important;
 }}
+
 .stDownloadButton > button:hover {{
     background: {accent_soft} !important;
     border-color: {accent} !important;
+    transform: translateY(-1px) !important;
 }}
 
-/* ── Pipeline cards ── */
+/* ══════════════════════════════════════════
+   HERO SECTION
+══════════════════════════════════════════ */
+.hero {{
+    padding: 3.5rem 0 2.5rem;
+    border-bottom: 1px solid {border_col};
+    margin-bottom: 2.5rem;
+    position: relative;
+}}
+
+.hero-eyebrow {{
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: {eyebrow_color};
+    margin-bottom: 1rem;
+    padding: 0.25rem 0.75rem;
+    background: {tag_bg};
+    border-radius: 100px;
+    border: 1px solid {border_col};
+}}
+
+.hero-title {{
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2.6rem, 5.5vw, 4rem);
+    font-weight: 400;
+    line-height: 1.08;
+    color: {text_primary};
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.03em;
+}}
+
+.hero-title em {{
+    font-style: italic;
+    background: linear-gradient(135deg, {accent} 0%, {accent2} 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}}
+
+.hero-sub {{
+    font-size: 0.95rem;
+    color: {hero_sub};
+    font-weight: 400;
+    line-height: 1.6;
+    max-width: 520px;
+}}
+
+/* ══════════════════════════════════════════
+   PIPELINE CARDS
+══════════════════════════════════════════ */
 .pipeline-card {{
     background: {bg_card};
     border: 1px solid {border_col};
-    border-radius: 12px;
-    padding: 1.1rem 1.4rem;
-    margin-bottom: 0.8rem;
+    border-radius: 14px;
+    padding: 1rem 1.4rem;
+    margin-bottom: 0.65rem;
     display: flex;
     align-items: center;
     gap: 1rem;
-    transition: border-color 0.3s, background 0.3s;
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
 }}
-.pipeline-card.active {{ border-color: {pipeline_run}; }}
-.pipeline-card.done   {{ border-color: {pipeline_done}; }}
-.pipeline-icon {{ font-size: 1.2rem; flex-shrink: 0; }}
+
+.pipeline-card.active {{
+    border-color: {accent};
+    box-shadow: 0 0 0 1px {accent_soft}, 0 8px 24px {accent_soft};
+    background: {"rgba(124,92,252,0.04)" if dark else "rgba(98,64,232,0.03)"};
+}}
+
+.pipeline-card.done {{
+    border-color: {"rgba(80,220,130,0.3)" if dark else "rgba(40,180,90,0.25)"};
+    background: {"rgba(80,220,130,0.03)" if dark else "rgba(40,180,90,0.02)"};
+}}
+
+.pipeline-icon {{ font-size: 1.15rem; flex-shrink: 0; }}
 .pipeline-label {{
     font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     color: {text_muted};
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    margin-bottom: 0.1rem;
 }}
-.pipeline-value {{ font-size: 0.88rem; color: {text_sec}; margin-top: 0.1rem; }}
+.pipeline-value {{ font-size: 0.85rem; color: {text_sec}; }}
+
 .badge {{
     margin-left: auto;
     font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    padding: 0.18rem 0.55rem;
+    font-size: 0.62rem;
+    padding: 0.2rem 0.6rem;
     border-radius: 100px;
     letter-spacing: 0.06em;
+    font-weight: 500;
 }}
-.badge-pending {{ background: rgba(128,128,128,0.1); color: {text_muted}; }}
-.badge-running {{ background: rgba(124,92,252,0.2); color: {accent_light}; }}
-.badge-done    {{ background: rgba(80,220,130,0.15); color: #60d890; }}
-.badge-skipped {{ background: rgba(255,180,50,0.1); color: #e0a040; }}
+.badge-pending {{ background: {"rgba(255,255,255,0.05)" if dark else "rgba(0,0,0,0.05)"}; color: {text_muted}; }}
+.badge-running {{
+    background: rgba(124,92,252,0.2);
+    color: {accent_light};
+    animation: badge-pulse 1.5s ease-in-out infinite;
+}}
+@keyframes badge-pulse {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: 0.6; }}
+}}
+.badge-done    {{ background: {"rgba(80,220,130,0.15)" if dark else "rgba(40,180,90,0.12)"}; color: {"#60d890" if dark else "#28b45a"}; }}
+.badge-skipped {{ background: {"rgba(255,180,50,0.1)" if dark else "rgba(220,140,20,0.1)"}; color: {"#e0a040" if dark else "#c07820"}; }}
 
-/* ── Markdown output ── */
+/* ══════════════════════════════════════════
+   OUTPUT / MARKDOWN AREA
+══════════════════════════════════════════ */
 .output-header {{
     display: flex;
     align-items: baseline;
     gap: 1rem;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.4rem;
     flex-wrap: wrap;
 }}
-.output-title  {{ font-family: 'Instrument Serif', serif; font-size: 1.5rem; color: {text_primary}; }}
-.output-meta   {{ font-family: 'DM Mono', monospace; font-size: 0.68rem; color: {text_muted}; letter-spacing: 0.08em; }}
+.output-title {{
+    font-family: 'Fraunces', serif;
+    font-size: 1.7rem;
+    color: {text_primary};
+    font-weight: 400;
+    letter-spacing: -0.02em;
+}}
+.output-meta {{
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: {text_muted};
+    letter-spacing: 0.08em;
+}}
+
 .markdown-container {{
     background: {bg_card};
     border: 1px solid {border_col};
-    border-radius: 12px;
-    padding: 2rem;
-    line-height: 1.75;
-    transition: background 0.3s ease;
+    border-radius: 16px;
+    padding: 2.2rem;
+    line-height: 1.8;
+    transition: background 0.4s ease;
 }}
-.markdown-container h1 {{ font-size: 1.9rem; color: {text_primary}; margin-bottom: 1.5rem; }}
-.markdown-container h2 {{ font-size: 1.25rem; color: {md_h2}; border-bottom: 1px solid {border_col}; padding-bottom: 0.35rem; margin-top: 2rem; }}
-.markdown-container p  {{ color: {md_p}; margin-bottom: 1rem; }}
-.markdown-container code {{ background: {md_code_bg}; border-radius: 4px; padding: 0.1em 0.4em; font-family: 'DM Mono', monospace; font-size: 0.84em; color: {md_code_c}; }}
-.markdown-container pre {{ background: {md_pre_bg}; border: 1px solid {border_col}; border-radius: 8px; padding: 1.2rem; overflow-x: auto; }}
+.markdown-container h1 {{
+    font-family: 'Fraunces', serif;
+    font-size: 2rem;
+    color: {text_primary};
+    margin-bottom: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.025em;
+}}
+.markdown-container h2 {{
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    color: {md_h2};
+    border-bottom: 1px solid {border_col};
+    padding-bottom: 0.4rem;
+    margin-top: 2.2rem;
+    margin-bottom: 0.8rem;
+    font-weight: 400;
+}}
+.markdown-container p  {{ color: {md_p}; margin-bottom: 1rem; font-size: 0.95rem; }}
+.markdown-container code {{
+    background: {md_code_bg};
+    border-radius: 5px;
+    padding: 0.12em 0.45em;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.83em;
+    color: {md_code_c};
+}}
+.markdown-container pre {{
+    background: {md_pre_bg};
+    border: 1px solid {border_col};
+    border-radius: 10px;
+    padding: 1.4rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}}
 .markdown-container pre code {{ background: transparent; color: {md_code_c}; }}
-.markdown-container ul, .markdown-container ol {{ color: {md_p}; padding-left: 1.5rem; }}
-.markdown-container li {{ margin-bottom: 0.3rem; }}
-.markdown-container a {{ color: {accent}; text-decoration: none; border-bottom: 1px solid {accent_soft}; }}
-
-/* ── Sidebar history ── */
-.hist-meta {{
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    color: {hist_label};
-    margin: -0.3rem 0 0.7rem 0;
-    padding: 0 0.1rem;
+.markdown-container ul, .markdown-container ol {{
+    color: {md_p};
+    padding-left: 1.6rem;
+    margin-bottom: 1rem;
 }}
-.mode-pill {{
-    display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.58rem;
-    padding: 0.08rem 0.4rem;
-    border-radius: 100px;
+.markdown-container li {{ margin-bottom: 0.35rem; font-size: 0.95rem; }}
+.markdown-container a {{
+    color: {accent};
+    text-decoration: none;
+    border-bottom: 1px solid {accent_soft};
+    transition: border-color 0.2s;
 }}
-.mode-closed_book {{ background: rgba(80,200,255,0.1); color: #60c8f8; }}
-.mode-hybrid      {{ background: rgba(255,180,50,0.1);  color: #e0a040; }}
-.mode-open_book   {{ background: rgba(80,220,130,0.1);  color: #60d890; }}
+.markdown-container a:hover {{ border-color: {accent}; }}
 
-/* ── User chip ── */
+/* ══════════════════════════════════════════
+   SIDEBAR — USER CHIP
+══════════════════════════════════════════ */
 .user-chip {{
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.7rem;
     background: {chip_bg};
     border: 1px solid {chip_border};
-    border-radius: 10px;
-    padding: 0.65rem 0.9rem;
-    margin-bottom: 1rem;
-    transition: background 0.3s;
+    border-radius: 14px;
+    padding: 0.7rem 0.95rem;
+    margin-bottom: 0.75rem;
+    transition: background 0.4s;
 }}
 .user-avatar {{
-    width: 30px; height: 30px; border-radius: 50%;
-    background: linear-gradient(135deg, {accent}, {accent_light});
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, {accent} 0%, {accent2} 100%);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.72rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    font-size: 0.7rem; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px {accent_soft};
 }}
-.user-name  {{ font-size: 0.85rem; color: {text_primary}; font-weight: 600; line-height: 1.2; }}
-.user-email {{ font-family: 'DM Mono', monospace; font-size: 0.6rem; color: {text_muted}; }}
-
-/* ── Sidebar toggle button ── */
-.sidebar-toggle {{
-    position: fixed;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    z-index: 9999;
-    background: {accent};
-    color: white;
-    border: none;
-    border-radius: 0 8px 8px 0;
-    width: 22px;
-    height: 56px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.65rem;
-    transition: all 0.2s;
-    box-shadow: 2px 0 12px rgba(124,92,252,0.3);
+.user-name  {{
+    font-size: 0.85rem;
+    color: {text_primary};
+    font-weight: 600;
+    line-height: 1.25;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }}
-.sidebar-toggle:hover {{ width: 28px; box-shadow: 4px 0 20px rgba(124,92,252,0.5); }}
-
-/* ── Theme toggle ── */
-.theme-btn {{
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: {chip_bg};
-    border: 1px solid {chip_border};
-    border-radius: 8px;
-    padding: 0.45rem 0.9rem;
-    cursor: pointer;
+.user-email {{
     font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    color: {text_sec};
-    transition: all 0.2s;
-    width: 100%;
-    margin-bottom: 0.5rem;
+    font-size: 0.58rem;
+    color: {text_muted};
+    margin-top: 0.05rem;
 }}
-.theme-btn:hover {{ border-color: {accent}; color: {accent_light}; }}
 
-hr {{ border-color: {border_col} !important; margin: 1.2rem 0 !important; }}
+/* ══════════════════════════════════════════
+   SIDEBAR HISTORY CARDS
+══════════════════════════════════════════ */
+.hist-section-label {{
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: {hist_label};
+    margin-bottom: 0.7rem;
+    padding: 0 0.1rem;
+}}
 
+.hist-card {{
+    background: {bg_card};
+    border: 1px solid {border_col};
+    border-radius: 12px;
+    padding: 0.75rem 0.9rem 0.6rem;
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s, background 0.2s;
+}}
+
+.hist-card.active {{
+    border-color: {accent};
+    background: {"rgba(124,92,252,0.05)" if dark else "rgba(98,64,232,0.04)"};
+    box-shadow: 0 0 0 1px {accent_soft};
+}}
+
+/* ══════════════════════════════════════════
+   SETTINGS SECTION LABEL
+══════════════════════════════════════════ */
+.settings-label {{
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: {hist_label};
+    margin-bottom: 0.5rem;
+    padding: 0 0.1rem;
+}}
+
+/* Expanders */
+[data-testid="stExpander"] {{
+    background: {"rgba(255,255,255,0.02)" if dark else "rgba(98,64,232,0.02)"} !important;
+    border: 1px solid {border_col} !important;
+    border-radius: 12px !important;
+    margin-bottom: 0.5rem !important;
+    transition: background 0.3s !important;
+}}
+
+[data-testid="stExpander"]:hover {{
+    border-color: {chip_border} !important;
+}}
+
+[data-testid="stExpander"] summary {{
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    color: {text_sec} !important;
+    padding: 0.6rem 0.9rem !important;
+}}
+
+/* Alerts */
 [data-testid="stAlert"] {{
     background: {alert_bg} !important;
     border: 1px solid {alert_border} !important;
-    border-radius: 8px !important;
+    border-radius: 12px !important;
     color: {alert_text} !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.88rem !important;
 }}
 
-/* Tabs */
-[data-testid="stTabs"] [data-baseweb="tab"] {{
-    font-family: 'DM Mono', monospace;
-    font-size: 0.75rem;
-    color: {text_muted};
-    letter-spacing: 0.06em;
-}}
-[data-testid="stTabs"] [aria-selected="true"] {{
-    color: {accent} !important;
+/* HR */
+hr {{
+    border: none !important;
+    border-top: 1px solid {divider_col} !important;
+    margin: 1rem 0 !important;
 }}
 
 /* Spinner */
 [data-testid="stSpinner"] > div > div {{
     border-top-color: {accent} !important;
 }}
+
+/* Radio */
+[data-testid="stRadio"] label {{
+    font-size: 0.88rem !important;
+    color: {text_sec} !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+}}
+
+/* Sliders */
+[data-testid="stSlider"] [data-baseweb="slider"] [data-testid*="StyledThumb"] {{
+    background: {accent} !important;
+    border-color: {accent} !important;
+}}
+
+/* Select slider */
+[data-testid="stSlider"] [data-baseweb="slider"] [data-testid*="StyledTrackHighlight"] {{
+    background: linear-gradient(90deg, {accent}, {accent2}) !important;
+}}
+
+/* Sidebar toggle button */
+.sidebar-toggle {{
+    position: fixed;
+    top: 50%; left: 0;
+    transform: translateY(-50%);
+    z-index: 9999;
+    background: linear-gradient(135deg, {accent}, {accent2});
+    color: white;
+    border: none;
+    border-radius: 0 10px 10px 0;
+    width: 22px; height: 60px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    transition: all 0.2s;
+    box-shadow: 3px 0 16px {glow1};
+}}
+
+/* Mode pill */
+.mode-closed_book {{ background: rgba(80,200,255,0.1); color: {"#60c8f8" if dark else "#0890c8"}; }}
+.mode-hybrid      {{ background: rgba(255,180,50,0.1);  color: {"#e0a040" if dark else "#c07820"}; }}
+.mode-open_book   {{ background: rgba(80,220,130,0.1);  color: {"#60d890" if dark else "#28b45a"}; }}
 </style>
 """, unsafe_allow_html=True)
-
-# ── Persistent login via localStorage (JS injection) ──────────────────────────
-# We inject a small JS snippet to:
-# 1. On page load: read token from localStorage → send to Streamlit via query_params
-# 2. On login: write token to localStorage
-
-def inject_local_storage_reader():
-    """On page load, read token from localStorage and put it in URL param if present."""
-    st.components.v1.html("""
-    <script>
-    (function() {
-        const token = localStorage.getItem('content_engine_token');
-        const params = new URLSearchParams(window.location.search);
-        if (token && !params.has('_token')) {
-            params.set('_token', token);
-            // Replace URL without reload to let Streamlit pick up query_params
-            const newUrl = window.location.pathname + '?' + params.toString();
-            window.history.replaceState({}, '', newUrl);
-            // Trigger a rerun by navigating — but we use postMessage to parent instead
-            window.parent.postMessage({type: 'streamlit:setQueryParam', key: '_token', value: token}, '*');
-        }
-    })();
-    </script>
-    """, height=0)
-
-def set_local_storage_token(token: str):
-    """Write token to localStorage after login."""
-    st.components.v1.html(f"""
-    <script>
-        localStorage.setItem('content_engine_token', '{token}');
-    </script>
-    """, height=0)
-
-def clear_local_storage_token():
-    """Clear token from localStorage on logout."""
-    st.components.v1.html("""
-    <script>
-        localStorage.removeItem('content_engine_token');
-    </script>
-    """, height=0)
 
 # ── MongoDB ───────────────────────────────────────────────────────────────────
 load_dotenv()
@@ -474,7 +786,7 @@ def get_db():
     db["users"].create_index("email", unique=True)
     db["blogs"].create_index("user_id")
     db["sessions"].create_index("token", unique=True)
-    db["sessions"].create_index("expires_at", expireAfterSeconds=0)  # TTL index
+    db["sessions"].create_index("expires_at", expireAfterSeconds=0)
     return db
 
 db = get_db()
@@ -487,7 +799,6 @@ def check_pw(pw: str, hashed: str) -> bool:
     return bcrypt.checkpw(pw.encode(), hashed.encode())
 
 def create_session(user_id: str) -> str:
-    """Create a session token in MongoDB with 30-day expiry."""
     token = secrets.token_urlsafe(32)
     db["sessions"].insert_one({
         "token": token,
@@ -498,7 +809,6 @@ def create_session(user_id: str) -> str:
     return token
 
 def get_user_from_token(token: str):
-    """Look up a user from their session token."""
     if not token:
         return None
     session = db["sessions"].find_one({"token": token, "expires_at": {"$gt": datetime.now(timezone.utc)}})
@@ -508,7 +818,6 @@ def get_user_from_token(token: str):
     return user
 
 def delete_session(token: str):
-    """Invalidate a session token."""
     if token:
         db["sessions"].delete_one({"token": token})
 
@@ -577,15 +886,15 @@ def save_settings(user_id: str, cfg: dict):
 
 # ── Session defaults ──────────────────────────────────────────────────────────
 _defaults = {
-    "user":          None,
-    "session_token": None,
-    "history":       [],
+    "user":           None,
+    "session_token":  None,
+    "history":        [],
     "history_loaded": False,
-    "viewing_id":    None,
+    "viewing_id":     None,
     "current_result": None,
-    "settings":        None,
-    "settings_open":   False,
-    "confirm_delete":  None,   # bid of entry pending delete confirmation
+    "settings":       None,
+    "settings_open":  False,
+    "confirm_delete": None,
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
@@ -604,25 +913,20 @@ if st.session_state.user is None:
             }
             st.session_state.session_token = token_from_url
             st.session_state.history_loaded = False
-            # Also load settings immediately so sidebar has them
             st.session_state.settings = load_settings(str(auto_user["_id"]))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH WALL
 # ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.user is None:
-    # Inject JS to read localStorage token and redirect parent (not iframe) ONCE using sessionStorage guard
+    # JS: read localStorage token and redirect
     st.components.v1.html("""
     <script>
     (function() {
-        // Only attempt redirect if we haven't already tried this session
         if (sessionStorage.getItem('ce_redirect_tried')) return;
         sessionStorage.setItem('ce_redirect_tried', '1');
-
         const token = localStorage.getItem('content_engine_token');
         if (!token) return;
-
-        // Check parent URL (the real Streamlit page, not the iframe)
         try {
             const parentParams = new URLSearchParams(window.parent.location.search);
             if (!parentParams.has('_token')) {
@@ -631,34 +935,40 @@ if st.session_state.user is None:
                     window.parent.location.pathname + '?' + parentParams.toString()
                 );
             }
-        } catch(e) {
-            // Cross-origin fallback — shouldn't happen on same-origin Streamlit
-            console.warn('CE: could not access parent location', e);
-        }
+        } catch(e) { console.warn('CE: could not access parent location', e); }
     })();
     </script>
     """, height=0)
 
-    # Theme toggle on auth page
-    auth_col1, auth_col2 = st.columns([4, 1])
-    with auth_col2:
+    # Theme toggle — top right
+    _, col_theme = st.columns([5, 1])
+    with col_theme:
         if st.button(f"{mode_icon} {mode_label}", key="auth_theme"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
 
-    st.markdown('<div class="auth-wrap">', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="auth-logo">✦ Study Engine</div>'
-        f'<h1 class="auth-title">Study deeper.<br><em>Learn smarter.</em></h1>'
-        f'<p class="auth-sub">Sign in to save your study guides and access your full learning history.</p>',
-        unsafe_allow_html=True,
-    )
+    # ── Auth card markup ──────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div class="auth-card">
+        <div class="auth-badge">
+            <span class="dot"></span>
+            Study &amp; Content Engine
+        </div>
+        <h1 class="auth-headline">Learn deeper.<br><em>Study smarter.</em></h1>
+        <p class="auth-sub">
+            Generate detailed study guides, deep-dive research, and structured content 
+            — from any subject, instantly.
+        </p>
+        <div class="auth-divider"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    tab_in, tab_up = st.tabs(["Sign In", "Create Account"])
+    # Streamlit inputs rendered inside the card visually via CSS proximity
+    tab_in, tab_up = st.tabs(["✦  Sign In", "Create Account"])
 
     with tab_in:
-        li_email = st.text_input("Email", key="li_email", placeholder="you@example.com")
-        li_pw    = st.text_input("Password", key="li_pw", type="password", placeholder="••••••••")
+        li_email = st.text_input("Email address", key="li_email", placeholder="you@example.com")
+        li_pw    = st.text_input("Password", key="li_pw", type="password", placeholder="Your password")
         if st.button("Sign In →", key="do_login_btn", use_container_width=True):
             if not li_email or not li_pw:
                 st.error("Please fill in both fields.")
@@ -672,7 +982,6 @@ if st.session_state.user is None:
                     st.session_state.session_token = token
                     st.session_state.history_loaded = False
                     st.session_state.settings = load_settings(str(u["_id"]))
-                    # Store token in localStorage via JS, also set in URL for immediate use
                     st.query_params["_token"] = token
                     st.components.v1.html(f"""
                     <script>localStorage.setItem('content_engine_token', '{token}');</script>
@@ -681,7 +990,7 @@ if st.session_state.user is None:
 
     with tab_up:
         su_name  = st.text_input("Full Name", key="su_name", placeholder="Jane Doe")
-        su_email = st.text_input("Email", key="su_email", placeholder="you@example.com")
+        su_email = st.text_input("Email address", key="su_email", placeholder="you@example.com")
         su_pw    = st.text_input("Password", key="su_pw", type="password", placeholder="Min 8 characters")
         su_pw2   = st.text_input("Confirm Password", key="su_pw2", type="password", placeholder="Repeat password")
         if st.button("Create Account →", key="do_signup_btn", use_container_width=True):
@@ -707,156 +1016,126 @@ if st.session_state.user is None:
                     """, height=0)
                     st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Feature tags at the bottom
+    st.markdown(f"""
+    <div class="auth-features">
+        <span class="auth-feature-tag">✦ AI-Powered Research</span>
+        <span class="auth-feature-tag">📖 Study Guides</span>
+        <span class="auth-feature-tag">🔬 Deep Analysis</span>
+        <span class="auth-feature-tag">💾 Cloud Saved</span>
+        <span class="auth-feature-tag">⚡ Instant Generate</span>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
-# LOGGED IN — keep token in URL and localStorage fresh
+# LOGGED IN — refresh token
 # ══════════════════════════════════════════════════════════════════════════════
-user = st.session_state.user
+user  = st.session_state.user
 token = st.session_state.get("session_token", "")
 
-# Keep token alive in localStorage on every rerun
 if token:
     st.query_params["_token"] = token
     st.components.v1.html(f"""
     <script>
     (function() {{
         localStorage.setItem('content_engine_token', '{token}');
-        // Clear the redirect-tried flag so logout + re-login works cleanly
         sessionStorage.removeItem('ce_redirect_tried');
     }})();
     </script>
     """, height=0)
 
-# Load history once per session
 if not st.session_state.history_loaded:
     st.session_state.history = load_blogs(user["id"])
     st.session_state.history_loaded = True
 
 history = st.session_state.history
 
-# ── Sidebar toggle injection ──────────────────────────────────────────────────
-st.components.v1.html(f"""
-<script>
-(function() {{
-    var BTN_ID = 'ce-sidebar-knob';
+# Sidebar knob: simple, robust implementation.
+# Shows a hamburger button when sidebar is collapsed. Polls every 300ms — lightweight.
+def _build_sidebar_js(accent_color, accent2_color):
+    return (
+        "<script>(function(){"
+        "var p=window.parent,pd=p.document;"
+        "var KNOB='ce-sidebar-knob';"
 
-    function getSidebarWidth() {{
-        var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
-        return sb ? sb.getBoundingClientRect().width : 0;
-    }}
+        # ---- create knob once ----
+        "if(!pd.getElementById(KNOB)){"
+        "var b=pd.createElement('button');"
+        "b.id=KNOB;"
+        "b.innerHTML='&#9776;';"
+        "b.title='Open sidebar';"
+        "b.style.cssText='"
+        "position:fixed;top:50%;left:0;transform:translateY(-50%);"
+        "z-index:2147483647;"
+        "background:linear-gradient(135deg," + accent_color + "," + accent2_color + ");"
+        "color:#fff;border:none;border-radius:0 10px 10px 0;"
+        "width:26px;height:60px;cursor:pointer;"
+        "display:none;align-items:center;justify-content:center;"
+        "font-size:1rem;padding:0;line-height:1;"
+        "box-shadow:3px 0 16px rgba(124,92,252,.45);"
+        "transition:width .15s;"
+        "';"
+        "b.onmouseenter=function(){b.style.width='34px';};"
+        "b.onmouseleave=function(){b.style.width='26px';};"
+        "pd.body.appendChild(b);}"
 
-    function clickStreamlitToggle() {{
-        // Streamlit renders the collapse/expand button with these selectors (try all)
-        var selectors = [
-            'button[data-testid="collapsedControl"]',
-            '[data-testid="stSidebarCollapsedControl"] button',
-            'button[aria-label="open sidebar"]',
-            'button[aria-label="Open sidebar"]',
-            'button[aria-label="close sidebar"]',
-            'button[aria-label="Close sidebar"]',
-            '[data-testid="stSidebar"] ~ div button',
-        ];
-        for (var i = 0; i < selectors.length; i++) {{
-            var el = window.parent.document.querySelector(selectors[i]);
-            if (el) {{ el.click(); return; }}
-        }}
-        // Ultimate fallback: find any button near x=0 in the parent doc
-        var allBtns = window.parent.document.querySelectorAll('button');
-        allBtns.forEach(function(b) {{
-            var r = b.getBoundingClientRect();
-            if (r.left < 60 && r.top > 0 && r.width > 0) b.click();
-        }});
-    }}
+        # ---- always update gradient (theme may have changed) ----
+        "var knob=pd.getElementById(KNOB);"
+        "knob.style.background='linear-gradient(135deg," + accent_color + "," + accent2_color + ")';"
 
-    function updateKnob() {{
-        var knob = window.parent.document.getElementById(BTN_ID);
-        var w = getSidebarWidth();
-        var isCollapsed = w < 50;
-        if (knob) {{
-            knob.style.display = isCollapsed ? 'flex' : 'none';
-        }}
-    }}
+        # ---- click: find & click Streamlit's own toggle ----
+        "knob.onclick=function(){"
+        "var found=false;"
+        "var tries=["
+        "'button[data-testid=\"collapsedControl\"]',"
+        "'[data-testid=\"stSidebarCollapsedControl\"] button',"
+        "'button[aria-label=\"open sidebar\"]',"
+        "'button[aria-label=\"Open sidebar\"]',"
+        "'button[aria-label=\"close sidebar\"]',"
+        "'button[aria-label=\"Close sidebar\"]'"
+        "];"
+        "for(var i=0;i<tries.length;i++){"
+        "var el=pd.querySelector(tries[i]);"
+        "if(el){el.click();found=true;break;}}"
+        # fallback: find button adjacent to sidebar in DOM
+        "if(!found){"
+        "var sb=pd.querySelector('[data-testid=\"stSidebar\"]');"
+        "if(sb&&sb.nextElementSibling){"
+        "var fbtn=sb.nextElementSibling.querySelector('button');"
+        "if(fbtn)fbtn.click();}}"
+        "};"
 
-    function createKnob() {{
-        if (window.parent.document.getElementById(BTN_ID)) return;
+        # ---- poll every 300ms to show/hide knob ----
+        # clear old interval stored on window.parent
+        "if(p.__ce_iv__)clearInterval(p.__ce_iv__);"
+        "p.__ce_iv__=setInterval(function(){"
+        "var sb=pd.querySelector('[data-testid=\"stSidebar\"]');"
+        "if(!sb)return;"
+        "var w=sb.getBoundingClientRect().width;"
+        "knob.style.display=w<50?'flex':'none';"
+        "},300);"
 
-        var btn = window.parent.document.createElement('button');
-        btn.id = BTN_ID;
-        btn.title = 'Open sidebar';
-        btn.innerHTML = '&#9776;'; // hamburger ≡
-        btn.style.cssText = [
-            'position:fixed',
-            'top:50%',
-            'left:0',
-            'transform:translateY(-50%)',
-            'z-index:2147483647',
-            'background:{accent}',
-            'color:#fff',
-            'border:none',
-            'border-radius:0 10px 10px 0',
-            'width:24px',
-            'height:60px',
-            'cursor:pointer',
-            'display:flex',
-            'align-items:center',
-            'justify-content:center',
-            'font-size:0.85rem',
-            'box-shadow:3px 0 16px rgba(124,92,252,0.45)',
-            'transition:width 0.15s ease,box-shadow 0.15s ease',
-            'padding:0',
-            'line-height:1',
-        ].join(';');
+        # ---- run once immediately ----
+        "(function(){"
+        "var sb=pd.querySelector('[data-testid=\"stSidebar\"]');"
+        "if(!sb)return;"
+        "knob.style.display=sb.getBoundingClientRect().width<50?'flex':'none';"
+        "})();"
 
-        btn.onmouseenter = function() {{
-            btn.style.width = '32px';
-            btn.style.boxShadow = '4px 0 24px rgba(124,92,252,0.65)';
-        }};
-        btn.onmouseleave = function() {{
-            btn.style.width = '24px';
-            btn.style.boxShadow = '3px 0 16px rgba(124,92,252,0.45)';
-        }};
-        btn.onclick = function() {{
-            clickStreamlitToggle();
-            // Hide knob immediately; it'll reappear if sidebar still collapsed after 400ms
-            btn.style.display = 'none';
-            setTimeout(updateKnob, 400);
-            setTimeout(updateKnob, 900);
-        }};
+        "})();</script>"
+    )
 
-        window.parent.document.body.appendChild(btn);
-        updateKnob();
-    }}
-
-    // Boot: try a few times to catch after Streamlit finishes rendering
-    function boot() {{
-        createKnob();
-        updateKnob();
-    }}
-    setTimeout(boot, 600);
-    setTimeout(boot, 1500);
-    setTimeout(boot, 3000);
-
-    // Watch sidebar width changes via ResizeObserver
-    function watchSidebar() {{
-        var sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
-        if (!sb) {{ setTimeout(watchSidebar, 800); return; }}
-        var ro = new ResizeObserver(function() {{ updateKnob(); }});
-        ro.observe(sb);
-    }}
-    setTimeout(watchSidebar, 1000);
-}})();
-</script>
-""", height=0)
-
-# ── Load settings into session if not yet loaded ──────────────────────────────
+st.components.v1.html(_build_sidebar_js(accent, accent2), height=0)
 if st.session_state.settings is None:
     st.session_state.settings = load_settings(user["id"])
 
-cfg = st.session_state.settings   # shorthand
+cfg = st.session_state.settings
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
     initials = "".join(w[0].upper() for w in user["name"].split()[:2])
     st.markdown(
@@ -870,7 +1149,7 @@ with st.sidebar:
 
     col_theme, col_out = st.columns(2)
     with col_theme:
-        if st.button(f"{mode_icon} {'Light' if dark else 'Dark'}", key="theme_toggle", use_container_width=True):
+        if st.button(f"{mode_icon} {mode_label}", key="theme_toggle", use_container_width=True):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
     with col_out:
@@ -884,25 +1163,19 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── ⚙️ Settings Panel ─────────────────────────────────────────────────────
+    # ── Settings ──────────────────────────────────────────────────────────────
     st.markdown(
-        f'<div style="font-family:\'DM Mono\',monospace;font-size:0.63rem;'
-        f'letter-spacing:0.14em;text-transform:uppercase;color:{hist_label};margin-bottom:0.5rem;">'
-        f'⚙ Settings</div>',
+        f'<div class="settings-label">⚙ Settings</div>',
         unsafe_allow_html=True,
     )
 
     with st.expander("🔑 API Keys", expanded=st.session_state.settings_open):
-        # ── Gemini ─────────────────────────────────────────────────────────
         st.markdown(
-            '<div style="font-family:\'DM Mono\',monospace;font-size:0.63rem;'
-            f'color:{accent_light};letter-spacing:0.06em;margin-bottom:0.2rem;">GEMINI API KEY</div>'
-            '<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;'
-            f'color:{text_muted};margin-bottom:0.35rem;">'
-            'Overrides server default · leave blank to use server key · '
-            '<a href="https://aistudio.google.com/app/apikey" target="_blank" '
-            f'style="color:{accent};text-decoration:none;border-bottom:1px solid {accent_soft};">'
-            'Get key ↗</a></div>',
+            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.62rem;'
+            f'color:{accent_light};letter-spacing:0.07em;margin-bottom:0.2rem;">GEMINI API KEY</div>'
+            f'<div style="font-size:0.72rem;color:{text_muted};margin-bottom:0.4rem;">'
+            f'Overrides server default · <a href="https://aistudio.google.com/app/apikey" target="_blank" '
+            f'style="color:{accent};text-decoration:none;">Get key ↗</a></div>',
             unsafe_allow_html=True,
         )
         new_key = st.text_input(
@@ -913,19 +1186,13 @@ with st.sidebar:
             key="s_api_key",
             label_visibility="collapsed",
         )
-
-        st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
-
-        # ── Tavily ─────────────────────────────────────────────────────────
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
         st.markdown(
-            '<div style="font-family:\'DM Mono\',monospace;font-size:0.63rem;'
-            f'color:{accent_light};letter-spacing:0.06em;margin-bottom:0.2rem;">TAVILY API KEY</div>'
-            '<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;'
-            f'color:{text_muted};margin-bottom:0.35rem;">'
-            'For web research (Balanced / Deep / Exhaustive). Free: 1,000 searches/mo · '
-            '<a href="https://app.tavily.com/home" target="_blank" '
-            f'style="color:{accent};text-decoration:none;border-bottom:1px solid {accent_soft};">'
-            'Get key ↗</a></div>',
+            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.62rem;'
+            f'color:{accent_light};letter-spacing:0.07em;margin-bottom:0.2rem;">TAVILY API KEY</div>'
+            f'<div style="font-size:0.72rem;color:{text_muted};margin-bottom:0.4rem;">'
+            f'For web research · Free 1,000/mo · <a href="https://app.tavily.com/home" target="_blank" '
+            f'style="color:{accent};text-decoration:none;">Get key ↗</a></div>',
             unsafe_allow_html=True,
         )
         new_tavily_key = st.text_input(
@@ -937,9 +1204,8 @@ with st.sidebar:
             label_visibility="collapsed",
         )
         st.markdown(
-            '<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;'
-            f'color:{text_muted};margin-top:0.3rem;">'
-            '🔒 Both keys stored securely in your account</div>',
+            f'<div style="font-size:0.68rem;color:{text_muted};margin-top:0.4rem;">'
+            f'🔒 Keys stored securely in your account</div>',
             unsafe_allow_html=True,
         )
 
@@ -951,51 +1217,42 @@ with st.sidebar:
             key="s_output_type",
             label_visibility="collapsed",
         )
+        desc_map = {
+            "Study Guide":   "📖 Structured for learning — definitions, examples, key concepts",
+            "Blog Post":     "✍️ Engaging narrative with introduction and conclusion",
+            "Deep Research": "🔬 Exhaustive analysis with citations and multiple perspectives",
+            "Quick Summary": "⚡ Concise overview, key takeaways only",
+        }
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:{text_muted};margin-top:0.3rem;">'
-            + {
-                "Study Guide":    "📖 Structured for learning — definitions, examples, key concepts",
-                "Blog Post":      "✍️ Engaging narrative with introduction and conclusion",
-                "Deep Research":  "🔬 Exhaustive analysis with citations and multiple perspectives",
-                "Quick Summary":  "⚡ Concise overview, key takeaways only",
-            }.get(cfg["output_type"], "")
-            + '</div>',
+            f'<div style="font-size:0.72rem;color:{text_muted};margin-top:0.3rem;line-height:1.5;">'
+            f'{desc_map.get(new_output_type, "")}</div>',
             unsafe_allow_html=True,
         )
 
     with st.expander("📏 Length & Depth", expanded=False):
-        # ── Section count ──────────────────────────────────────────────────────
         new_section_count = st.slider(
             "Number of Sections",
             min_value=3, max_value=10,
             value=int(cfg.get("section_count", 5)),
-            step=1,
-            key="s_section_count",
-            help="How many sections the output will have (3–10)"
+            step=1, key="s_section_count",
         )
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:{text_muted};margin-bottom:0.6rem;">'
+            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.62rem;color:{text_muted};margin-bottom:0.6rem;">'
             f'📑 {new_section_count} sections</div>',
             unsafe_allow_html=True,
         )
-
-        # ── Words per section ──────────────────────────────────────────────────
         new_words_per_section = st.slider(
             "Words per Section",
             min_value=100, max_value=1000,
             value=int(cfg.get("words_per_section", 300)),
-            step=50,
-            key="s_words_per_section",
-            help="Target word count per section (100–1000)"
+            step=50, key="s_words_per_section",
         )
         total_words = new_section_count * new_words_per_section
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:{text_muted};margin-bottom:0.6rem;">'
+            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.62rem;color:{text_muted};margin-bottom:0.6rem;">'
             f'📝 {new_words_per_section}w/section · ~{total_words:,} total · ≈{total_words // 200} min read</div>',
             unsafe_allow_html=True,
         )
-
-        # ── Research depth ─────────────────────────────────────────────────────
         new_depth = st.select_slider(
             "Research Depth",
             options=["Quick", "Balanced", "Deep", "Exhaustive"],
@@ -1003,14 +1260,13 @@ with st.sidebar:
             key="s_depth",
         )
         depth_desc = {
-            "Quick":     "⚡ Fast — uses model knowledge only, no web research",
-            "Balanced":  "⚖️ Mix of model knowledge + targeted web research",
-            "Deep":      "🔬 Full research pipeline with multiple sources",
-            "Exhaustive":"🌐 Maximum sources, multi-angle analysis, longest output",
+            "Quick":      "⚡ Fast — uses model knowledge only",
+            "Balanced":   "⚖️ Model knowledge + targeted web research",
+            "Deep":       "🔬 Full research pipeline with multiple sources",
+            "Exhaustive": "🌐 Maximum sources, multi-angle analysis",
         }
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:{text_muted};">'
-            f'{depth_desc[new_depth]}</div>',
+            f'<div style="font-size:0.72rem;color:{text_muted};">{depth_desc[new_depth]}</div>',
             unsafe_allow_html=True,
         )
 
@@ -1030,8 +1286,7 @@ with st.sidebar:
             "Socratic":     "❓ Question-driven, encourages critical thinking",
         }
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:{text_muted};">'
-            f'{tone_desc[new_tone]}</div>',
+            f'<div style="font-size:0.72rem;color:{text_muted};">{tone_desc[new_tone]}</div>',
             unsafe_allow_html=True,
         )
 
@@ -1049,12 +1304,11 @@ with st.sidebar:
             label_visibility="collapsed",
         )
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:{text_muted};">'
-            f'These are injected into the AI system prompt.</div>',
+            f'<div style="font-size:0.68rem;color:{text_muted};">'
+            f'Injected directly into the AI system prompt.</div>',
             unsafe_allow_html=True,
         )
 
-    # Save settings button
     if st.button("💾  Save Settings", key="save_settings_btn", use_container_width=True):
         updated = {
             "gemini_api_key":    new_key.strip(),
@@ -1073,74 +1327,57 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── Study History ─────────────────────────────────────────────────────────
+    # ── History ───────────────────────────────────────────────────────────────
     st.markdown(
-        f'<div style="font-family:\'DM Mono\',monospace;font-size:0.63rem;'
-        f'letter-spacing:0.14em;text-transform:uppercase;color:{hist_label};margin-bottom:0.8rem;">'
-        f'Study History ({len(history)})</div>',
+        f'<div class="hist-section-label">Study History ({len(history)})</div>',
         unsafe_allow_html=True,
     )
 
     if not history:
         st.markdown(
             f'<div style="font-family:\'DM Mono\',monospace;font-size:0.72rem;'
-            f'color:{hist_label};padding:0.3rem 0;">No guides yet — generate your first!</div>',
+            f'color:{text_muted};padding:0.4rem 0.1rem;">No guides yet — generate your first!</div>',
             unsafe_allow_html=True,
         )
     else:
         for entry in history:
-            mode        = entry.get("mode", "closed_book")
-            title       = entry.get("blog_title", "Untitled")
-            ts          = entry.get("created_at", "")
-            bid         = entry["_id"]
-            otype       = entry.get("output_type", "")
-            nsec        = entry.get("section_count", "")
-            wps         = entry.get("words_per_section", "")
-            size_info   = f"{nsec}×{wps}w" if nsec and wps else ""
-            is_active   = st.session_state.viewing_id == bid
+            title   = entry.get("blog_title", "Untitled")
+            ts      = entry.get("created_at", "")
+            bid     = entry["_id"]
+            otype   = entry.get("output_type", "")
+            nsec    = entry.get("section_count", "")
+            wps     = entry.get("words_per_section", "")
+            size_info = f"{nsec}×{wps}w" if nsec and wps else ""
+            is_active = st.session_state.viewing_id == bid
 
-            # Card container
-            card_border = "rgba(124,92,252,0.6)" if is_active else "rgba(255,255,255,0.07)"
-            st.markdown(
-                f'<div style="background:#13131e;border:1px solid {card_border};border-radius:10px;'
-                f'padding:0.7rem 0.85rem 0.5rem;margin-bottom:0.55rem;">',
-                unsafe_allow_html=True,
-            )
+            card_cls = "hist-card active" if is_active else "hist-card"
+            st.markdown(f'<div class="{card_cls}">', unsafe_allow_html=True)
 
             confirming = st.session_state.confirm_delete == bid
 
             if not confirming:
-                # ── Normal view: title button + trash icon ────────────────────
                 col_b, col_d = st.columns([7, 1])
                 with col_b:
                     if st.button(
-                        f"{'▶ ' if is_active else ''}{title[:28]}{'…' if len(title) > 28 else ''}",
-                        key=f"v_{bid}",
-                        use_container_width=True,
+                        f"{'▶ ' if is_active else ''}{title[:26]}{'…' if len(title) > 26 else ''}",
+                        key=f"v_{bid}", use_container_width=True,
                     ):
-                        st.session_state.viewing_id     = bid
+                        st.session_state.viewing_id = bid
                         st.session_state.current_result = None
                         st.rerun()
                 with col_d:
-                    st.markdown(
-                        f'<div style="display:flex;align-items:center;justify-content:center;height:2.4rem;">',
-                        unsafe_allow_html=True,
-                    )
-                    if st.button("🗑", key=f"d_{bid}", help="Delete this entry"):
+                    if st.button("🗑", key=f"d_{bid}", help="Delete"):
                         st.session_state.confirm_delete = bid
                         st.rerun()
-                    st.markdown("</div>", unsafe_allow_html=True)
             else:
-                # ── Confirm view: "Delete?" + Yes / No ────────────────────────
                 st.markdown(
-                    f'<div style="font-family:\'DM Mono\',monospace;font-size:0.68rem;'
-                    f'color:#f08080;margin-bottom:0.35rem;padding:0 0.1rem;">'
-                    f'🗑 Delete this entry?</div>',
+                    f'<div style="font-size:0.72rem;color:#f08080;margin-bottom:0.4rem;font-weight:500;">'
+                    f'Delete this entry?</div>',
                     unsafe_allow_html=True,
                 )
                 col_yes, col_no = st.columns(2)
                 with col_yes:
-                    if st.button("✓ Yes, delete", key=f"yes_{bid}", use_container_width=True):
+                    if st.button("✓ Yes", key=f"yes_{bid}", use_container_width=True):
                         delete_blog(bid)
                         st.session_state.history = [h for h in history if h["_id"] != bid]
                         st.session_state.confirm_delete = None
@@ -1148,22 +1385,24 @@ with st.sidebar:
                             st.session_state.viewing_id = None
                         st.rerun()
                 with col_no:
-                    if st.button("✗ Cancel", key=f"no_{bid}", use_container_width=True):
+                    if st.button("✗ No", key=f"no_{bid}", use_container_width=True):
                         st.session_state.confirm_delete = None
                         st.rerun()
 
-            # Meta row — timestamp + type pill + size
+            # Type pill colors
             type_color = {
-                "Study Guide":  ("#1a1035","#b89cfa"),
-                "Blog Post":    ("#0d1f12","#60d890"),
-                "Deep Research":("#1a1210","#f0a060"),
-                "Quick Summary":("#0d1828","#60c8f8"),
-            }.get(otype, ("#1a1a2e","#9a96c0"))
-            pill_html = f'<span style="background:{type_color[0]};color:{type_color[1]};font-family:\'DM Mono\',monospace;font-size:0.55rem;padding:0.1rem 0.45rem;border-radius:100px;">{otype}</span>' if otype else ""
-            size_html  = f'<span style="color:#4a4658;font-size:0.6rem;font-family:\'DM Mono\',monospace;">{size_info}</span>' if size_info else ""
+                "Study Guide":   ("#1a1035", "#b89cfa") if dark else ("#ede8ff", "#6240e8"),
+                "Blog Post":     ("#0d1f12", "#60d890") if dark else ("#e6fff0", "#28a85a"),
+                "Deep Research": ("#1a1210", "#f0a060") if dark else ("#fff3e6", "#c07020"),
+                "Quick Summary": ("#0d1828", "#60c8f8") if dark else ("#e6f4ff", "#0878c8"),
+            }.get(otype, ("#1a1a2e", "#9a96c0") if dark else ("#f0eeff", "#6240e8"))
+
+            pill_html = f'<span style="background:{type_color[0]};color:{type_color[1]};font-family:\'DM Mono\',monospace;font-size:0.55rem;padding:0.12rem 0.5rem;border-radius:100px;font-weight:500;">{otype}</span>' if otype else ""
+            size_html = f'<span style="color:{text_muted};font-size:0.58rem;font-family:\'DM Mono\',monospace;">{size_info}</span>' if size_info else ""
+
             st.markdown(
-                f'<div style="font-family:\'DM Mono\',monospace;font-size:0.6rem;color:#3a3640;'
-                f'margin-top:0.1rem;display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">'
+                f'<div style="font-family:\'DM Mono\',monospace;font-size:0.58rem;color:{text_muted};'
+                f'margin-top:0.2rem;display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">'
                 f'{ts} {pill_html} {size_html}</div>',
                 unsafe_allow_html=True,
             )
@@ -1204,8 +1443,10 @@ def render_blog(entry: dict, label: str = ""):
             unsafe_allow_html=True,
         )
     with col2:
-        st.download_button("↓ Download", data=md, file_name=fn, mime="text/markdown", use_container_width=True)
-
+        st.download_button(
+            "↓ Download", data=md, file_name=fn,
+            mime="text/markdown", use_container_width=True,
+        )
     st.markdown('<div class="markdown-container">', unsafe_allow_html=True)
     st.markdown(md)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1255,14 +1496,13 @@ else:
             "Quick Summary": "✦ Quick Summary",
         }
         generate = st.button(
-            btn_labels.get(cfg.get("output_type","Study Guide"), "✦ Generate"),
-            use_container_width=True
+            btn_labels.get(cfg.get("output_type", "Study Guide"), "✦ Generate"),
+            use_container_width=True,
         )
     with col_hint:
         st.markdown(
-            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.68rem;color:{hist_label};padding-top:0.85rem;">'
-            f'Research → Outline → Deep content → Structured Markdown'
-            f'</div>',
+            f'<div style="font-family:\'DM Mono\',monospace;font-size:0.65rem;color:{text_muted};padding-top:0.9rem;">'
+            f'Research → Outline → Deep content → Structured Markdown</div>',
             unsafe_allow_html=True,
         )
 
@@ -1270,31 +1510,25 @@ else:
         if not topic.strip():
             st.warning("Please enter a topic before generating.")
         else:
-            # ── Validate API key ──────────────────────────────────────────────
             active_key = cfg.get("gemini_api_key", "").strip() or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
             if not active_key:
-                st.error("⚠️ No Google API key found. Add your Gemini key in ⚙️ Settings → 🔑 API Key & Model (top of sidebar), or set GOOGLE_API_KEY in your .env file.")
+                st.error("⚠️ No Google API key found. Add your Gemini key in ⚙️ Settings → 🔑 API Keys (sidebar).")
                 st.stop()
 
-            # ── Inject user config into environment for backend to pick up ───
-            # Set key under both names — ace_config checks GEMINI_API_KEY first,
-            # ChatGoogleGenerativeAI falls back to GOOGLE_API_KEY
-            os.environ["GOOGLE_API_KEY"]          = active_key
-            os.environ["GEMINI_API_KEY"]          = active_key
-            # Tavily key: user key takes priority over server .env key
+            os.environ["GOOGLE_API_KEY"]        = active_key
+            os.environ["GEMINI_API_KEY"]        = active_key
             tavily_key = cfg.get("tavily_api_key", "").strip() or os.getenv("TAVILY_API_KEY", "")
             if tavily_key:
-                os.environ["TAVILY_API_KEY"]      = tavily_key
-            os.environ["ACE_OUTPUT_TYPE"]         = cfg.get("output_type", "Study Guide")
-            os.environ["ACE_SECTION_COUNT"]       = str(cfg.get("section_count", 5))
-            os.environ["ACE_WORDS_PER_SECTION"]   = str(cfg.get("words_per_section", 300))
-            os.environ["ACE_DEPTH_LEVEL"]         = cfg.get("depth_level", "Balanced")
-            os.environ["ACE_TONE"]                = cfg.get("tone", "Educational")
-            os.environ["ACE_EXTRA_INSTRUCTION"]   = cfg.get("extra_instruction", "")
+                os.environ["TAVILY_API_KEY"]    = tavily_key
+            os.environ["ACE_OUTPUT_TYPE"]       = cfg.get("output_type", "Study Guide")
+            os.environ["ACE_SECTION_COUNT"]     = str(cfg.get("section_count", 5))
+            os.environ["ACE_WORDS_PER_SECTION"] = str(cfg.get("words_per_section", 300))
+            os.environ["ACE_DEPTH_LEVEL"]       = cfg.get("depth_level", "Balanced")
+            os.environ["ACE_TONE"]              = cfg.get("tone", "Educational")
+            os.environ["ACE_EXTRA_INSTRUCTION"] = cfg.get("extra_instruction", "")
 
             try:
                 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-                # Force reimport so backend picks up new env values
                 if "ACE_backend" in sys.modules:
                     del sys.modules["ACE_backend"]
                 from ACE_backend import app as engine_app  # type: ignore
@@ -1302,13 +1536,13 @@ else:
                 st.error("**ACE_backend.py not found.** Place it in the same folder as app.py.")
                 st.stop()
 
-            # ── Show active config badge ──────────────────────────────────────
-            otype    = cfg.get("output_type", "Study Guide")
-            nsec     = cfg.get("section_count", 5)
-            wps      = cfg.get("words_per_section", 300)
-            depth    = cfg.get("depth_level", "Balanced")
-            tone     = cfg.get("tone", "Educational")
-            total_w  = nsec * wps
+            otype   = cfg.get("output_type", "Study Guide")
+            nsec    = cfg.get("section_count", 5)
+            wps     = cfg.get("words_per_section", 300)
+            depth   = cfg.get("depth_level", "Balanced")
+            tone    = cfg.get("tone", "Educational")
+            total_w = nsec * wps
+
             st.markdown(
                 f'<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.2rem;">'
                 f'<span class="badge badge-done" style="margin:0;">📄 {otype}</span>'
@@ -1357,9 +1591,7 @@ else:
             with st.spinner(""):
                 try:
                     upd("router", "🔀", "Router", "Routing topic…", "running")
-
                     for event in engine_app.stream({"topic": topic.strip()}, stream_mode="updates"):
-
                         if "router" in event:
                             r = event["router"]
                             mode_used = r.get("mode", "closed_book")
@@ -1369,46 +1601,42 @@ else:
                                 upd("research", "🔍", "Research", "Fetching live evidence…", "running")
                             else:
                                 upd("research", "🔍", "Research", "Skipped (closed-book)", "skipped")
-
                         if "research" in event:
                             ev = event["research"].get("evidence", [])
                             upd("research", "🔍", "Research", f"Retrieved {len(ev)} evidence items", "done")
                             upd("orchestrator", "📐", "Planner", "Creating outline…", "running")
-
                         if "orchestrator" in event:
                             plan_obj = event["orchestrator"].get("plan")
                             n = len(plan_obj.tasks) if plan_obj else "?"
                             upd("orchestrator", "📐", "Planner", f"Plan ready · {n} sections", "done")
                             upd("worker", "✍️", "Writer", f"Writing {n} sections in parallel…", "running")
-
                         if "reducer" in event:
                             upd("worker",  "✍️",  "Writer",    "All sections written", "done")
                             upd("reducer", "🗜️", "Assembler", "Merging Markdown…", "running")
                             result_md = event["reducer"].get("final")
                             upd("reducer", "🗜️", "Assembler", "Blog assembled ✓", "done")
-
                 except Exception as e:
                     st.error(f"Pipeline error: {e}")
                     st.stop()
 
             if result_md and plan_obj:
                 blog_title = plan_obj.blog_title
-                filename   = (
+                filename = (
                     "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in blog_title)
                     .strip().lower().replace(" ", "_") + ".md"
                 )
                 entry = {
-                    "blog_title": blog_title,
-                    "markdown":   result_md,
-                    "filename":   filename,
-                    "mode":       mode_used,
+                    "blog_title":        blog_title,
+                    "markdown":          result_md,
+                    "filename":          filename,
+                    "mode":              mode_used,
                     "output_type":       cfg.get("output_type", "Study Guide"),
                     "section_count":     cfg.get("section_count", 5),
                     "words_per_section": cfg.get("words_per_section", 300),
                     "depth_level":       cfg.get("depth_level", "Balanced"),
-                    "tone":        cfg.get("tone", "Educational"),
-                    "topic":      topic.strip(),
-                    "created_at": datetime.now().strftime("%b %d %Y, %H:%M"),
+                    "tone":              cfg.get("tone", "Educational"),
+                    "topic":             topic.strip(),
+                    "created_at":        datetime.now().strftime("%b %d %Y, %H:%M"),
                 }
                 save_blog(user["id"], entry)
                 refreshed = load_blogs(user["id"])
