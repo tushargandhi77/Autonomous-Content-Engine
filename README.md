@@ -189,6 +189,18 @@ You also have generated content examples as `.md` files, including:
 
 These are useful for reviewing final output style, structure, citation formatting, and failure modes (like image quota errors embedded in output).
 
+## ScreenShots
+
+<img width="1908" height="857" alt="Image" src="https://github.com/user-attachments/assets/a685daf2-5673-4c9f-a6a8-4dc72595f85e" />
+
+<img width="1918" height="862" alt="Image" src="https://github.com/user-attachments/assets/46cd2fe7-a562-45c2-9a9a-b151a6861db8" />
+
+<img width="1887" height="827" alt="Image" src="https://github.com/user-attachments/assets/2c53091c-b111-4e46-bba4-cae95cb6eac7" />
+
+<img width="1902" height="833" alt="Image" src="https://github.com/user-attachments/assets/4479cee4-cad4-432d-8a72-f6d9b402d0c5" />
+
+<img width="1893" height="865" alt="Image" src="https://github.com/user-attachments/assets/c02b595e-b87a-44b2-abd9-5edb7e8875e9" 
+
 ## Troubleshooting
 
 - `MONGO_URI not set`: add `MONGO_URI` in `.env` (or Streamlit secrets).
